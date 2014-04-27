@@ -4,6 +4,8 @@ usage:
     ia metadata [--modify=<key:value>...] <identifier>
     ia metadata [--append=<key:value>...] <identifier>
     ia metadata [--exists | --formats] <identifier>
+    ia metadata [--query=<key>...] <identifier>
+    ia metadata --keys <identifier>
     ia metadata --help
 
 options:
@@ -14,6 +16,10 @@ options:
                                output, exits with return value 0 if the item
                                exists, and 1 if it does not.
     -F, --formats              Return the file-formats the given item contains.
+    -q, --query=<key>...       Instead of dumping all the metadata of an item, 
+                               returns just the information specified, in a more
+                               readable format.
+    -Q, --keys                 Returns all of the keys for --query
 
 """
 import sys
@@ -55,8 +61,37 @@ def main(argv):
 
     # Get metadata.
     elif args['--formats']:
-        formats = set([f.format for f in item.iter_files()])
-        sys.stdout.write('\n'.join(formats) + '\n')
+        if item.exists:
+            formats = set([f.format for f in item.iter_files()])
+            sys.stdout.write('\n'.join(formats) + '\n')
+        else:
+            sys.exit(1)
+    elif args['--query']:
+        if args['--query'] == ['*']: args['--query'] = item.metadata.keys()
+        data = []
+        for key in args['--query']:
+            try:
+                data.append((key, item.metadata[key]))
+            except KeyError:
+                sys.stderr.write('Item {0} does not have {1}\n'.format(item.identifier, key))
+                sys.exit(1)
+        if len(data) == 1:
+            datum = data[0][1]
+            if isinstance(datum, (str, unicode)):
+                sys.stdout.write(datum + '\n')
+            else:
+                sys.stdout.write(dumps(datum) + '\n')
+        else:
+            for key, datum in data:
+                if isinstance(datum, (str, unicode)):
+                    sys.stdout.write(key+':\t' + datum + '\n')
+                else:
+                    sys.stdout.write(key+':\t' + dumps(datum) + '\n')
+    elif args['--keys']:
+        if item.exists:
+            sys.stdout.write('\n'.join(item.metadata.keys()) + '\n')
+        else:
+            sys.exit(1)
     else:
         metadata = dumps(item.metadata)
         sys.stdout.write(metadata + '\n')
