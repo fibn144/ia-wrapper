@@ -45,8 +45,5 @@ def main(argv):
             with open(args['--output'], 'a+') as fp:
                 fp.write(metadata + '\n')
         else:
-            try:
-                sys.stdout.write(metadata + '\n')
-            except IOError:
-                break
+            sys.stdout.write(metadata + '\n')
     sys.exit(0)
